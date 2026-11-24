@@ -1,0 +1,108 @@
+public class RegressionAnalysis {
+
+    public static void main(String[] args) {
+        double[] studyHours = {1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 6, 10, 4};
+        double[] examScore  = {55, 62, 68, 72, 78, 83, 88, 93, 100, 100, 71, 86, 98, 76};
+
+        //Calculate the means
+        int n = studyHours.length;
+        double sumX = 0, sumY = 0;
+        for (int i = 0; i < n; i++) {
+            sumX += studyHours[i];
+            sumY += examScore[i];
+        }
+        double meanX = sumX / n;
+        double meanY = sumY / n;
+
+        // Calculate sums of squares
+        double ssXX = 0, ssYY = 0, ssXY = 0;
+        for (int i = 0; i < n; i++) {
+            double dx = studyHours[i] - meanX;
+            double dy = examScore[i] - meanY;
+            ssXX += dx * dx;
+            ssYY += dy * dy;
+            ssXY += dx * dy;
+        }
+
+        double slope = ssXY / ssXX;
+        double intercept = meanY - slope * meanX;
+        double rSquared = (ssXY * ssXY) / (ssXX * ssYY);
+
+        // Our standard error and t-statistic for hypothesis test (H0: slope = 0)
+        double ssResidual = ssYY - slope * ssXY;
+        int df = n - 2; // degrees of freedom
+        double stdErrorSlope = Math.sqrt((ssResidual / df) / ssXX);
+        double tStat = slope / stdErrorSlope;
+        double pValue = twoTailedPValue(Math.abs(tStat), df);
+
+        System.out.printf("Slope:          %.4f%n", slope);
+        System.out.printf("Intercept:      %.4f%n", intercept);
+        System.out.printf("R-squared:      %.4f%n", rSquared);
+        System.out.printf("t-statistic:    %.4f%n", tStat);
+        System.out.printf("P-value:        %.6f%n", pValue);
+
+        // Predict exam score for 5.5 study hours
+        double hoursToPredict = 5.5;
+        double predictedScore = intercept + slope * hoursToPredict;
+        System.out.printf("Predicted score for %.1f hours: %.2f%n", hoursToPredict, predictedScore);
+    }
+
+
+    //This one is relaly interesting because Java has no build-in 
+    // distribution function - Numerical approximation of the two-tailed Student's
+    // t-distribution p-value, We need these 4 methods to work together 
+    private static double twoTailedPValue(double t, int df) {
+        double x = df / (df + t * t);
+        return regularizedBeta(df / 2.0, 0.5, x);
+    }
+
+    private static double regularizedBeta(double a, double b, double x) {
+        double bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b)
+                + a * Math.log(x) + b * Math.log(1.0 - x));
+        if (x < (a + 1.0) / (a + b + 2.0)) {
+            return bt * betacf(a, b, x) / a;
+        } else {
+            return 1.0 - bt * betacf(b, a, 1.0 - x) / b;
+        }
+    }
+
+    private static double betacf(double a, double b, double x) {
+        int maxIter = 100;
+        double eps = 3.0e-7, fpmin = 1.0e-30;
+        double qab = a + b, qap = a + 1.0, qam = a - 1.0;
+        double c = 1.0, d = 1.0 - qab * x / qap;
+        if (Math.abs(d) < fpmin) d = fpmin;
+        d = 1.0 / d;
+        double h = d;
+        for (int m = 1; m <= maxIter; m++) {
+            int m2 = 2 * m;
+            double aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+            d = 1.0 + aa * d;
+            if (Math.abs(d) < fpmin) d = fpmin;
+            c = 1.0 + aa / c;
+            if (Math.abs(c) < fpmin) c = fpmin;
+            d = 1.0 / d;
+            h *= d * c;
+            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+            d = 1.0 + aa * d;
+            if (Math.abs(d) < fpmin) d = fpmin;
+            c = 1.0 + aa / c;
+            if (Math.abs(c) < fpmin) c = fpmin;
+            d = 1.0 / d;
+            double del = d * c;
+            h *= del;
+            if (Math.abs(del - 1.0) < eps) break;
+        }
+        return h;
+    }
+
+    private static double logGamma(double z) {
+        double[] c = {76.18009172947146, -86.50532032941677, 24.01409824083091,
+                -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5};
+        double x = z, y = z, tmp = x + 5.5;
+        tmp -= (x + 0.5) * Math.log(tmp);
+        double ser = 1.000000000190015;
+        for (int j = 0; j < 6; j++) ser += c[j] / ++y;
+        return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+}
