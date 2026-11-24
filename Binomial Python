@@ -1,0 +1,47 @@
+
+from scipy.stats import binomtest, binom
+
+# CIS219 exam statistics
+total_exams = 10
+perfect_scores = 10
+probability_luck = 0.05
+alpha = 0.05
+
+# 1. Probability of getting 100 on all 10 exams by luck
+prob_all = binom.pmf(perfect_scores, total_exams, probability_luck)
+
+# 2. Probability of getting at least one 100 by luck
+prob_at_least_one = binom.sf(0, total_exams, probability_luck)
+
+# 3. Binomial hypothesis test
+# H0: Probability of a perfect score is 5%
+# H1: Probability of a perfect score is greater than 5%
+result = binomtest(
+    k=perfect_scores,
+    n=total_exams,
+    p=probability_luck,
+    alternative="greater"
+)
+
+print("CIS219 Statistical Analysis")
+print("---------------------------")
+print(f"Number of exams: {total_exams}")
+print(f"Perfect scores: {perfect_scores}")
+print(f"Probability of luck: {probability_luck:.2%}")
+
+print(f"\nProbability of all 10 perfect scores: {prob_all:.15f}")
+print(f"Probability of at least one perfect score: {prob_at_least_one:.2%}")
+
+print("\nBinomial Hypothesis Test")
+print(f"P-value: {result.pvalue:.15f}")
+print(f"Significance level: {alpha}")
+
+if result.pvalue < alpha:
+    print("Reject H0: Results are unlikely under the luck-only model.")
+else:
+    print("Fail to reject H0: Insufficient evidence against the luck-only model.")
+
+#Binomial Hypothesis Test
+#P-value: 0.000000000000098
+#Significance level: 0.05
+#Reject H0: Results are unlikely under the luck-only model.
